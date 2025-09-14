@@ -7,3 +7,6 @@ startCommand = "/srv/pocketbase serve --http=0.0.0.0:8090"
 [service]
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300
+
+[volumes]
+pbdata = "/srv/pb_data"
