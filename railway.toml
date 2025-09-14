@@ -1,0 +1,9 @@
+[build]
+builder = "DOCKERFILE"
+
+[deploy]
+startCommand = "/srv/pocketbase serve --http=0.0.0.0:8090"
+
+[service]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 300
