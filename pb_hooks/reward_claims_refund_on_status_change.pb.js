@@ -11,28 +11,16 @@ onRecordAfterUpdateRequest(async (e) => {
     const clientId = e.record.getString("client") || "";
     const refund = e.record.getInt("pointsCost") || 0;
 
-    // 👇 FLAG idempotente (más confiable que refundedAt en 0.22)
     const refundApplied = !!e.record.getBool("refundApplied");
 
-    console.log("[HOOK refund] fired", {
-      id,
-      newStatus,
-      clientId,
-      refund,
-      refundApplied,
-    });
+    console.log(
+      "[HOOK refund] fired " +
+        JSON.stringify({ id, newStatus, clientId, refund, refundApplied })
+    );
 
     // Solo si termina en cancelled/expired
     if (newStatus !== "cancelled" && newStatus !== "expired") {
       console.log("[HOOK refund] skip: status not refundable");
-      return;
-    }
-
-    // Nunca si está usado (por las dudas)
-    const old = e.record.original();
-    const oldStatus = old ? old.getString("status") || "" : "";
-    if (oldStatus === "used" || newStatus === "used") {
-      console.log("[HOOK refund] skip: used");
       return;
     }
 
@@ -58,11 +46,11 @@ onRecordAfterUpdateRequest(async (e) => {
     // 2) Marcar el claim como reembolsado (refetch del record)
     const claim = await dao.findRecordById("reward_claims", id);
     claim.set("refundApplied", true);
-    claim.set("refundedAt", new Date().toISOString()); // opcional, si querés fecha
+    claim.set("refundedAt", new Date().toISOString()); // opcional
     await dao.saveRecord(claim);
 
-    console.log("[HOOK refund] OK: refunded", refund);
+    console.log("[HOOK refund] OK: refunded " + refund);
   } catch (err) {
-    console.log("[HOOK refund] ERROR", err);
+    console.log("[HOOK refund] ERROR " + err);
   }
 }, "reward_claims");
