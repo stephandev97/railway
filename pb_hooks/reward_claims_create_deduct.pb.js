@@ -1,8 +1,6 @@
 console.log("[PB HOOK] reward_claims hook LOADED");
 
-onRecordBeforeCreate(async (e) => {
-  console.log("[PB HOOK] afterUpdate fired", e.record.id);
-
+onRecordBeforeCreateRequest(async (e) => {
   if (e.collection.name !== "reward_claims") return;
 
   // Esperamos status "pending" al crear
