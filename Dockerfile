@@ -16,4 +16,5 @@ COPY pb_hooks ./pb_hooks
 # COPY pb_data ./pb_data
 
 EXPOSE 8090
-CMD ["/srv/pocketbase", "serve", "--http=0.0.0.0:8090"]
+CMD ["/srv/pocketbase", "serve", "--http=0.0.0.0:8090", "--dir=/srv/pb_data"]
+
