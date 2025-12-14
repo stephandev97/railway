@@ -1,43 +1,68 @@
-console.log("[PB HOOK] reward_claims hook LOADED");
+console.log("[PB HOOK] refund hook loaded");
 
 onRecordAfterUpdateRequest(async (e) => {
-  console.log("[HOOK refund] fired", e.record.id, e.record.getString("status"));
   if (e.collection.name !== "reward_claims") return;
 
   const dao = $app.dao();
 
-  // estado anterior vs nuevo
-  const old = e.record.original();
-  const oldStatus = old ? old.getString("status") || "" : "";
-  const newStatus = e.record.getString("status") || "";
-  // solo si pasó de pending -> expired/cancelled
+  try {
+    const id = e.record.id;
+    const newStatus = e.record.getString("status") || "";
+    const clientId = e.record.getString("client") || "";
+    const refund = e.record.getInt("pointsCost") || 0;
 
-  // idempotencia: si ya devolvimos, salimos
-  const refundedAt = e.record.get("refundedAt");
-  if (refundedAt) return;
+    // 👇 FLAG idempotente (más confiable que refundedAt en 0.22)
+    const refundApplied = !!e.record.getBool("refundApplied");
 
-  // si ya fue usado, nunca reembolsar
-  if (oldStatus === "used" || newStatus === "used") return;
+    console.log("[HOOK refund] fired", {
+      id,
+      newStatus,
+      clientId,
+      refund,
+      refundApplied,
+    });
 
-  // reembolsar si termina en cancelled/expired y todavía no se reembolsó
-  const becameRefundable = newStatus === "cancelled" || newStatus === "expired";
+    // Solo si termina en cancelled/expired
+    if (newStatus !== "cancelled" && newStatus !== "expired") {
+      console.log("[HOOK refund] skip: status not refundable");
+      return;
+    }
 
-  // (opcional) evitar reembolsar si venía de un estado final distinto
-  if (!becameRefundable) return;
+    // Nunca si está usado (por las dudas)
+    const old = e.record.original();
+    const oldStatus = old ? old.getString("status") || "" : "";
+    if (oldStatus === "used" || newStatus === "used") {
+      console.log("[HOOK refund] skip: used");
+      return;
+    }
 
-  const clientId = e.record.getString("client");
-  const refund = e.record.getInt("pointsCost") || 0;
+    if (!clientId) {
+      console.log("[HOOK refund] skip: missing clientId");
+      return;
+    }
+    if (refund <= 0) {
+      console.log("[HOOK refund] skip: refund <= 0");
+      return;
+    }
+    if (refundApplied) {
+      console.log("[HOOK refund] skip: already applied");
+      return;
+    }
 
-  if (!clientId || refund <= 0) return;
+    // 1) Devolver puntos al cliente
+    const client = await dao.findRecordById("clients", clientId);
+    const balance = client.getInt("pointsBalance") || 0;
+    client.set("pointsBalance", balance + refund);
+    await dao.saveRecord(client);
 
-  const client = await dao.findRecordById("clients", clientId);
-  const balance = client.getInt("pointsBalance") || 0;
+    // 2) Marcar el claim como reembolsado (refetch del record)
+    const claim = await dao.findRecordById("reward_claims", id);
+    claim.set("refundApplied", true);
+    claim.set("refundedAt", new Date().toISOString()); // opcional, si querés fecha
+    await dao.saveRecord(claim);
 
-  // Devolver puntos (una sola vez)
-  client.set("pointsBalance", balance + refund);
-  await dao.saveRecord(client);
-
-  // Marcar como ya reembolsado
-  e.record.set("refundedAt", new Date().toISOString());
-  await dao.saveRecord(e.record);
+    console.log("[HOOK refund] OK: refunded", refund);
+  } catch (err) {
+    console.log("[HOOK refund] ERROR", err);
+  }
 }, "reward_claims");
