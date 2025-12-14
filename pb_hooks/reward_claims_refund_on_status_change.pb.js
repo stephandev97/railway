@@ -1,6 +1,6 @@
 console.log("[PB HOOK] reward_claims hook LOADED");
 
-$app.onRecordAfterUpdate(async (e) => {
+onRecordAfterUpdateRequest(async (e) => {
   console.log("[HOOK refund] fired", e.record.id, e.record.getString("status"));
   if (e.collection.name !== "reward_claims") return;
 
@@ -13,7 +13,7 @@ $app.onRecordAfterUpdate(async (e) => {
   // solo si pasó de pending -> expired/cancelled
 
   // idempotencia: si ya devolvimos, salimos
-  const refundedAt = e.record.getDateTime("refundedAt");
+  const refundedAt = e.record.get("refundedAt");
   if (refundedAt) return;
 
   // si ya fue usado, nunca reembolsar

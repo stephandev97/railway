@@ -1,7 +1,8 @@
 console.log("[PB HOOK] reward_claims hook LOADED");
 
-$app.onRecordBeforeCreate(async (e) => {
-  console.log("[HOOK refund] loaded");
+onRecordBeforeCreateRequest(async (e) => {
+  console.log("[HOOK deduct] fired");
+
   if (e.collection.name !== "reward_claims") return;
 
   // Esperamos status "pending" al crear
