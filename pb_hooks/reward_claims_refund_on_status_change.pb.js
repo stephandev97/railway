@@ -1,4 +1,8 @@
+console.log("[PB HOOK] reward_claims hook LOADED");
+
 onRecordAfterUpdate(async (e) => {
+  console.log("[PB HOOK] afterUpdate fired", e.record.id);
+
   if (e.collection.name !== "reward_claims") return;
 
   const dao = $app.dao();
