@@ -70,10 +70,17 @@ onRecordBeforeCreateRequest(function (e) {
 function notifyChangedOrder(e, collectionName) {
   try {
     var push = require(__hooks + "/push_notifications.js");
-    var previous = e.record.originalCopy();
-    var before = String(previous.getString("progress") || previous.getString("status") || "").toLowerCase();
+    // En PocketBase 0.22 `originalCopy()` no conserva de forma fiable el
+    // valor previo dentro de los hooks AfterUpdateRequest. Eso hacÃ­a que el
+    // hook saliera antes (o lanzara una excepciÃ³n) y nunca intentara enviar.
+    // El request del POS ya indica explÃ­citamente si modificÃ³ progress/status.
+    var data = $apis.requestInfo(e.httpContext).data || {};
+    var changedProgress = Object.prototype.hasOwnProperty.call(data, "progress");
+    var changedStatus = Object.prototype.hasOwnProperty.call(data, "status");
+    if (!changedProgress && !changedStatus) return;
+
     var after = String(e.record.getString("progress") || e.record.getString("status") || "").toLowerCase();
-    if (!after || before === after) return;
+    if (!after) return;
     var result = push.sendForOrder(e.record, collectionName);
     console.log("[push] " + collectionName + "/" + e.record.id + " " + after + ": " + JSON.stringify(result));
   } catch (error) {
