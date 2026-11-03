@@ -67,31 +67,30 @@ onRecordBeforeCreateRequest(function (e) {
   e.record.set("notifications_enabled", true);
 }, "order_watchers", "order_watches");
 
-function notifyChangedOrder(e, collectionName) {
+onRecordAfterUpdateRequest(function (e) {
   try {
-    var push = require(__hooks + "/push_notifications.js");
-    // En PocketBase 0.22 `originalCopy()` no conserva de forma fiable el
-    // valor previo dentro de los hooks AfterUpdateRequest. Eso hacÃ­a que el
-    // hook saliera antes (o lanzara una excepciÃ³n) y nunca intentara enviar.
-    // El request del POS ya indica explÃ­citamente si modificÃ³ progress/status.
     var data = $apis.requestInfo(e.httpContext).data || {};
-    var changedProgress = Object.prototype.hasOwnProperty.call(data, "progress");
-    var changedStatus = Object.prototype.hasOwnProperty.call(data, "status");
-    if (!changedProgress && !changedStatus) return;
-
+    if (!Object.prototype.hasOwnProperty.call(data, "progress") &&
+        !Object.prototype.hasOwnProperty.call(data, "status")) return;
     var after = String(e.record.getString("progress") || e.record.getString("status") || "").toLowerCase();
     if (!after) return;
-    var result = push.sendForOrder(e.record, collectionName);
-    console.log("[push] " + collectionName + "/" + e.record.id + " " + after + ": " + JSON.stringify(result));
+    var result = require(__hooks + "/push_notifications.js").sendForOrder(e.record, "orders");
+    console.log("[push] orders/" + e.record.id + " " + after + ": " + JSON.stringify(result));
   } catch (error) {
-    console.log("[push] No se pudo notificar " + collectionName + "/" + e.record.id + ": " + error);
+    console.log("[push] No se pudo notificar orders/" + e.record.id + ": " + error);
   }
-}
-
-onRecordAfterUpdateRequest(function (e) {
-  notifyChangedOrder(e, "orders");
 }, "orders");
 
 onRecordAfterUpdateRequest(function (e) {
-  notifyChangedOrder(e, "orders_test");
+  try {
+    var data = $apis.requestInfo(e.httpContext).data || {};
+    if (!Object.prototype.hasOwnProperty.call(data, "progress") &&
+        !Object.prototype.hasOwnProperty.call(data, "status")) return;
+    var after = String(e.record.getString("progress") || e.record.getString("status") || "").toLowerCase();
+    if (!after) return;
+    var result = require(__hooks + "/push_notifications.js").sendForOrder(e.record, "orders_test");
+    console.log("[push] orders_test/" + e.record.id + " " + after + ": " + JSON.stringify(result));
+  } catch (error) {
+    console.log("[push] No se pudo notificar orders_test/" + e.record.id + ": " + error);
+  }
 }, "orders_test");
