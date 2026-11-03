@@ -2,11 +2,14 @@ FROM alpine:3.20
 WORKDIR /srv
 
 # Descargar pocketbase
-RUN apk add --no-cache wget unzip ca-certificates && \
+RUN apk add --no-cache wget unzip ca-certificates nodejs npm && \
     wget -O pb.zip https://github.com/pocketbase/pocketbase/releases/download/v0.22.14/pocketbase_0.22.14_linux_amd64.zip && \
     unzip pb.zip && rm pb.zip && chmod +x /srv/pocketbase
 
 # ✅ Copiar hooks (y opcionalmente pb_migrations si usás)
+COPY push_sender ./push_sender
+RUN cd /srv/push_sender && npm ci --omit=dev
+
 COPY pb_hooks ./pb_hooks
 
 # (Opcional) si tenés migrations

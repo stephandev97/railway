@@ -1,0 +1,12 @@
+{
+  "name": "pixel-pos-web-push-sender",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "generate-vapid": "node generate-vapid.cjs"
+  },
+  "dependencies": {
+    "web-push": "3.6.7"
+  }
+}
