@@ -22,6 +22,8 @@ vm.runInNewContext(receiverSource, {
   $os: { getenv: key => key === 'POINTS_BRIDGE_SECRET' ? 'secret' : 'admin@example.com' },
   $apis: { requestInfo: c => ({ data: c.data }) },
   $app: { dao: () => dao }, console,
+  __hooks: '/hooks',
+  require: () => ({ enqueue: () => {} }), // Los avisos se prueban en el backend PWA.
   Record: function () { this.values = {}; this.set = (key, value) => { this.values[key] = value; }; },
 });
 const call = (key = 'secret', points = 50) => route({
